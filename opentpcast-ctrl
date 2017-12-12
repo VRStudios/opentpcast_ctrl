@@ -1,0 +1,84 @@
+#! /bin/bash
+SERVICE="opentpcast-camera"
+PID_PATH="/var/run/"
+
+if [ "$(id -u)" != "0" ]; then
+	echo "This script must be run as root" 1>&2
+	exit 1
+fi
+
+case "$1" in
+	camera)
+		case "$2" in
+			start)
+				sudo service $SERVICE start
+			;;
+			stop)
+				sudo service $SERVICE stop
+			;;
+			restart)
+				sudo service $SERVICE restart
+			;;
+			reload)
+				if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
+					sudo service $SERVICE restart
+				fi
+			;;
+			toggle)
+				if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
+					sudo service $SERVICE stop
+				else
+					sudo service $SERVICE start
+				fi
+			;;
+			status)
+				if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
+					echo "1"
+				else
+					echo "0"
+				fi
+			;;
+			enable)
+				sudo update-rc.d $SERVICE defaults
+			;;
+			disable)
+				sudo update-rc.d -f $SERVICE remove
+			;;
+			boottoggle)
+				if ls /etc/rc*.d/ | grep $SERVICE >/dev/null; then
+					sudo service $SERVICE stop && sudo update-rc.d -f $SERVICE remove
+				else
+					sudo update-rc.d $SERVICE defaults && sudo service $SERVICE start
+				fi
+			;;
+			bootstatus)
+				if ls /etc/rc*.d/ | grep $SERVICE >/dev/null; then
+					echo "1"
+				else
+					echo "0"
+				fi
+			;;
+			*)
+				echo "Usage $SERVICE camera {start|stop|restart|reload|toggle|status|enable|disable|boottoggle|bootstatus}" 1>&2
+				exit 1
+			;;
+		esac
+	;;
+	applyconfig)
+		if [ -e "/var/www/html/opentpcast.txt" ]; then
+			sudo mv /var/www/html/opentpcast.txt /boot/opentpcast.txt
+		fi
+	;;
+	reboot)
+		sudo reboot now
+	;;
+	shutdown)
+		sudo shutdown now
+	;;
+	*)
+		echo "Usage $SERVICE {camera|applyconfig|reboot|shutdown}" 1>&2
+		exit 1
+	;;
+esac
+
+exit 0

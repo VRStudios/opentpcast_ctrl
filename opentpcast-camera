@@ -1,0 +1,75 @@
+#! /bin/bash
+### BEGIN INIT INFO
+# Provides:          opentpcast-camera
+# Required-Start:    $all
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Short-Description: Streams on-board or other USB connected camera over HTTP
+### END INIT INFO
+
+SERVICE="opentpcast-camera"
+PID_PATH="/var/run/"
+
+CAMERA_PORT=8080
+CAMERA_RESOLUTION_WIDTH=`egrep -v '(^#|^\s*$|^\s*\t*#)' /boot/opentpcast.txt | grep -oP '(?<=camerareswidth=)([0-9]+)$'`
+CAMERA_RESOLUTION_WIDTH=${CAMERA_RESOLUTION_WIDTH:-480}
+CAMERA_RESOLUTION_HEIGHT=`egrep -v '(^#|^\s*$|^\s*\t*#)' /boot/opentpcast.txt | grep -oP '(?<=cameraresheight=)([0-9]+)$'`
+CAMERA_RESOLUTION_HEIGHT=${CAMERA_RESOLUTION_HEIGHT:-360}
+CAMERA_FRAMERATE=`egrep -v '(^#|^\s*$|^\s*\t*#)' /boot/opentpcast.txt | grep -oP '(?<=cameraframerate=)([0-9]+)$'`
+
+start() {
+	if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
+		# Service is already started
+		echo "Error! $SERVICE is currently running!" 1>&2
+		exit 1
+	else
+		if [ ! -z "$CAMERA_FRAMERATE" ]; then
+			mjpg_streamer -o "output_http.so -p ${CAMERA_PORT}" -i "input_uvc.so -r ${CAMERA_RESOLUTION_WIDTH}x${CAMERA_RESOLUTION_HEIGHT} -f ${CAMERA_FRAMERATE}" & echo $! >$PID_PATH/$SERVICE.pid
+		else
+			mjpg_streamer -o "output_http.so -p ${CAMERA_PORT}" -i "input_uvc.so -r ${CAMERA_RESOLUTION_WIDTH}x${CAMERA_RESOLUTION_HEIGHT}" & echo $! >$PID_PATH/$SERVICE.pid
+		fi
+		echo "$SERVICE started"
+	fi
+}
+
+stop() {
+	if [ -e "$PID_PATH/$SERVICE.pid" ]; then
+		# Stop running service
+		pid=`cat $PID_PATH/$SERVICE.pid`
+		kill $pid
+		rm "$PID_PATH/$SERVICE.pid"
+		echo "$SERVICE stopped ($pid)"
+	else
+		# Service is not started
+		echo "Error! $SERVICE not started!" 1>&2
+		exit 1
+	fi
+}
+
+if [ "$(id -u)" != "0" ]; then
+	echo "This script must be run as root" 1>&2
+	exit 1
+fi
+
+case "$1" in
+	start)
+		start
+		exit 0
+	;;
+	stop)
+		stop
+		exit 0
+	;;
+	restart|reload|force-reload)
+		stop
+		start
+		exit 0
+	;;
+	*)
+		echo "Usage $SERVICE {start|stop|restart|reload}" 1>&2
+		exit 1
+	;;
+esac
+
+exit 0
