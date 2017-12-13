@@ -361,7 +361,7 @@
 						<input type="submit" name="cameraboottoggle" value="<?php echo $isCameraServiceEnabled ? "Disable" : "Enable" ?> Camera Service" />
 						<input type="submit" name="cameratoggle" value="<?php echo $isCameraServiceRunning ? "Stop" : "Start"; ?> Camera Service"<?php if(!$isCameraServiceEnabled) echo " disabled"; ?> />
 					</form>
-					<?php if($isCameraServiceEnabled && $isCameraServiceRunning) echo "\t\t\t\t\t<h3>Preview</h3>\t\t\t\t\t<img id=\"camerapreview\" src=\"http://" , $_SERVER['HTTP_HOST'] , ":8080/?action=stream\" alt=\"Camera Stream\" ondblclick=\"cameraFullscreenPreview()\" />"; ?>
+					<?php if($isCameraServiceRunning) echo "\t\t\t\t\t<h3>Preview</h3>\t\t\t\t\t<img id=\"camerapreview\" src=\"http://" , $_SERVER['HTTP_HOST'] , ":8080/?action=stream\" alt=\"Camera Stream\" ondblclick=\"cameraFullscreenPreview()\" />"; ?>
 					<h2>Settings</h2>
 					<form name="editcameraconf" method="post" autocomplete="off">
 						<label for="camerareswidth">Resolution Width</label><input type="number" oninput="editedCameraConf()"<?php if($confTemplate["camera"]["properties"]["camerareswidth"]["default"]) echo " placeholder=\"" . htmlspecialchars($confTemplate["camera"]["properties"]["camerareswidth"]["default"]) . "\""; ?> name="camerareswidth"<?php if($confTemplate["camera"]["properties"]["camerareswidth"]["value"]) echo " value=\"" . htmlspecialchars($confTemplate["camera"]["properties"]["camerareswidth"]["value"]) . "\""; ?>/>
