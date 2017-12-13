@@ -1,31 +1,4 @@
 <?php
-	// API to issue commands to TPCast
-	switch($_GET["ctrl"])
-	{
-		case "camerastatus": {
-			header('Content-Type: application/json');
-			$response = array('response' => 'camerastatus', 'status' => (exec("sudo opentpcast-ctrl camera status") === "1" ? 'started' : 'stopped'));
-			exit(json_encode($response));
-			break;
-		}
-
-		case "camerastart": {
-			exec("sudo opentpcast-ctrl camera start");
-			header('Content-Type: application/json');
-			$response = array('response' => 'camerastarted', 'url' => 'http://' . $_SERVER['HTTP_HOST'] . ':8080/?action=stream');
-			exit(json_encode($response));
-			break;
-		}
-
-		case "camerastop": {
-			exec("sudo opentpcast-ctrl camera stop");
-			header('Content-Type: application/json');
-			$response = array('response' => 'camerastopped');
-			exit(json_encode($response));
-			break;
-		}
-	}
-
 	// Disable Caching
 	header("Expires: Tue, 01 Jan 2000 00:00:00 GMT");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
