@@ -69,6 +69,11 @@ case "$1" in
 			sudo mv /var/www/html/opentpcast.txt /boot/opentpcast.txt
 		fi
 	;;
+	initwlan)
+		if [ ! -e "/boot/initwlan" ]; then
+			sudo touch /boot/initwlan
+		fi
+	;;
 	reboot)
 		sudo reboot now
 	;;
@@ -76,7 +81,7 @@ case "$1" in
 		sudo shutdown now
 	;;
 	*)
-		echo "Usage $SERVICE {camera|applyconfig|reboot|shutdown}" 1>&2
+		echo "Usage $SERVICE {camera|applyconfig|initwlan|reboot|shutdown}" 1>&2
 		exit 1
 	;;
 esac

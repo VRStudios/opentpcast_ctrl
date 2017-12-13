@@ -331,6 +331,7 @@
 				$confTemplate["network"]["properties"]["passphrase"]["value"] = str_replace(array("\r", "\n"), '', htmlspecialchars_decode($_POST["passphrase"]));
 
 				writeOpenTPCastConfig($confTemplate);
+				exec("sudo opentpcast-ctrl initwlan");
 				if($_POST["saveconfreboot"]) exec("sudo opentpcast-ctrl reboot");
 			} else if($_POST["savecameraconf"]) {
 				$_POST["camerareswidth"] = (int)htmlspecialchars_decode($_POST["camerareswidth"]);
