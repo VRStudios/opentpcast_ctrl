@@ -144,21 +144,30 @@
 				transition: 0.1s;
 			}
 
-			#settings-camera .status {
-			}
-
-			#settings-camera .running {
+			#settings-camera .running, #settings-virtualhere .running {
 				color: #0D8C36;
 				font-weight: bold;
 			}
 
-			#settings-camera .notrunning {
+			#settings-camera .notrunning, #settings-virtualhere .notrunning {
 				color: #D92B4B;
 				font-weight: bold;
 			}
 
-			#settings-general, #settings-camera {
+			#settings-general, #settings-camera, #settings-virtualhere {
 				display: none;
+			}
+
+			input[name=updatevirtualhere] {
+				width: 300px;
+			}
+
+			.blur {
+				filter: blur(5px);
+			}
+
+			.blur:hover {
+				filter: none;
 			}
 		</style>
 		<script>
@@ -193,6 +202,95 @@
 				form.querySelectorAll("[name=savecameraconf]")[0].disabled = false;
 			}
 
+			<?php
+				$versionVirtualHere = exec("sudo opentpcast-ctrl virtualhere version");
+			?>
+
+			var latestVersionVirtualHere;
+
+			var progressindicator = "...";
+			var inprogress = false;
+
+			setInterval(function() {
+				progressindicator = progressindicator.length >= 3 ? "" : progressindicator + ".";
+
+				if(inprogress) {
+					var form = document.getElementsByName("vhupdate")[0];
+					form.querySelectorAll("[name=updatevirtualhere]")[0].value = form.querySelectorAll("[name=updatevirtualhere]")[0].value.replace(/\.+$/, "") + progressindicator;
+				}
+			}, 750);
+
+			function checkVirtualHereServerVersion() {
+				var form = document.getElementsByName("vhupdate")[0];
+				form.querySelectorAll("[name=updatevirtualhere]")[0].disabled = true;
+				form.querySelectorAll("[name=updatevirtualhere]")[0].value = "Checking For Updates" + progressindicator;
+				inprogress = true;
+
+				var request = new XMLHttpRequest();
+				request.onreadystatechange = function() {
+					if(request.readyState === 4) {
+						if(request.status === 0 || request.status === 200) {
+							latestVersionVirtualHere = request.response.substring(request.response.indexOf("<virtualhere_server_version>") + 28, request.response.indexOf("</virtualhere_server_version>"));
+
+							var updateAvailable = (latestVersionVirtualHere && latestVersionVirtualHere !== "<?php echo $versionVirtualHere; ?>");
+							form.querySelectorAll("[name=updatevirtualhere]")[0].disabled = false;
+							form.querySelectorAll("[name=updatevirtualhere]")[0].value = updateAvailable ? ("Install Latest Version (" + latestVersionVirtualHere + ")") : "No Updates Found";
+							inprogress = false;
+							if(updateAvailable) form.querySelectorAll("[name=updatevirtualhere]")[0].onclick = updateVirtualHere;
+						}
+					}
+				}
+
+				request.open("GET", "https://www.virtualhere.com/latest_version", true);
+				request.send(null);
+			}
+
+			function updateVirtualHere() {
+				var form = document.getElementsByName("vhupdate")[0];
+				form.querySelectorAll("[name=updatevirtualhere]")[0].disabled = true;
+				form.querySelectorAll("[name=updatevirtualhere]")[0].value = "Downloading Update" + progressindicator;
+				inprogress = true;
+
+				var request = new XMLHttpRequest();
+				request.responseType = "blob";
+				request.onreadystatechange = function() {
+					if(request.readyState === 4) {
+						if(request.status === 0 || request.status === 200) {
+							form.querySelectorAll("[name=updatevirtualhere]")[0].disabled = true;
+							form.querySelectorAll("[name=updatevirtualhere]")[0].value = "Installing Update" + progressindicator;
+							inprogress = true;
+
+							var formdata = new FormData(form);
+							formdata.append("vhserverfile", request.response, "vhusbdtpcast");
+
+							var uploadrequest = new XMLHttpRequest();
+							uploadrequest.onreadystatechange = function() {
+								if(uploadrequest.readyState === 4) {
+									if(uploadrequest.status === 0 || uploadrequest.status === 200) {
+										form.querySelectorAll("[name=updatevirtualhere]")[0].value = "Finishing Installation" + progressindicator;
+										inprogress = true;
+										location.reload();
+									}
+								}
+							}
+
+							uploadrequest.open("POST", "index.php");
+							uploadrequest.send(formdata);
+						}
+					}
+				}
+
+				request.onprogress = function(event) {
+					if(event.lengthComputable) {
+						form.querySelectorAll("[name=updatevirtualhere]")[0].value = "Downloading Update (" + Math.floor(event.loaded / event.total * 100) + "%)" + progressindicator;
+						inprogress = true;
+					}
+				}
+
+				request.open("GET", "https://www.virtualhere.com/sites/default/files/usbserver/vhusbdtpcast", true);
+				request.send(null);
+			}
+
 			function showContent(id) {
 				var contentpanes = document.getElementById("content").querySelectorAll("[id^='settings-']");
 				for(var i = 0; i < contentpanes.length; ++i) {
@@ -203,6 +301,8 @@
 				if(!id) id = "settings-general";
 
 				document.getElementById(id).style.display = "block";
+
+				if(id === 'settings-virtualhere') checkVirtualHereServerVersion();
 			}
 
 			function cameraFullscreenPreview() {
@@ -330,8 +430,16 @@
 				exec("sudo opentpcast-ctrl camera boottoggle");
 			}
 
+			if($_FILES["vhserverfile"]) {
+				move_uploaded_file($_FILES["vhserverfile"]["tmp_name"], "/var/www/html/vhusbdtpcast");
+				exec("sudo opentpcast-ctrl virtualhere update");
+			}
+
 			$isCameraServiceEnabled = (exec("sudo opentpcast-ctrl camera bootstatus") === "1");
 			$isCameraServiceRunning = (exec("sudo opentpcast-ctrl camera status") === "1");
+
+			$isVirtualHereServiceRunning = (exec("sudo opentpcast-ctrl virtualhere status") === "1");
+			$licenseVirtualHere = exec("sudo opentpcast-ctrl virtualhere license");
 		?>
 		<div id="container">
 			<div id="navigation">
@@ -339,6 +447,7 @@
 				<ul>
 					<li><a href="#settings-general">General</a></li>
 					<li><a href="#settings-camera">Camera</a></li>
+					<li><a href="#settings-virtualhere">VirtualHere USB Server</a></li>
 				</ul>
 			</div>
 
@@ -356,7 +465,7 @@
 				<div id="settings-camera">
 					<h1>Camera</h1>
 					<h2>Camera Service</h2>
-					<p class="camstatus">Service status: <span class="<?php echo $isCameraServiceRunning ? "running" : "notrunning"; ?>"><?php echo $isCameraServiceRunning ? "Running" : "Not Running"; ?></span></p>
+					<p>Service status: <span class="<?php echo $isCameraServiceRunning ? "running" : "notrunning"; ?>"><?php echo $isCameraServiceRunning ? "Running" : "Not Running"; ?></span></p>
 					<form name="camservice" method="post" autocomplete="off">
 						<input type="submit" name="cameraboottoggle" value="<?php echo $isCameraServiceEnabled ? "Disable" : "Enable" ?> Camera Service" />
 						<input type="submit" name="cameratoggle" value="<?php echo $isCameraServiceRunning ? "Stop" : "Start"; ?> Camera Service"<?php if(!$isCameraServiceEnabled) echo " disabled"; ?> />
@@ -368,6 +477,16 @@
 						<label for="cameraresheight">Resolution Height</label><input type="number" oninput="editedCameraConf()"<?php if($confTemplate["camera"]["properties"]["cameraresheight"]["default"]) echo " placeholder=\"" . htmlspecialchars($confTemplate["camera"]["properties"]["cameraresheight"]["default"]) . "\""; ?> name="cameraresheight"<?php if($confTemplate["camera"]["properties"]["cameraresheight"]["value"]) echo " value=\"" . htmlspecialchars($confTemplate["camera"]["properties"]["cameraresheight"]["value"]) . "\""; ?>/>
 						<label for="cameraframerate">Frame Rate</label><input type="number" oninput="editedCameraConf()" placeholder="Auto" name="cameraframerate"<?php if($confTemplate["camera"]["properties"]["cameraframerate"]["value"]) echo " value=\"" . htmlspecialchars($confTemplate["camera"]["properties"]["cameraframerate"]["value"]) . "\""; ?>/>
 						<input type="submit" name="savecameraconf" value="Save" disabled /><input type="button" name="cameraconfdefault" value="Load Defaults" onclick="loadCameraConfDefaults()" />
+					</form>
+				</div>
+
+				<div id="settings-virtualhere">
+					<h1>VirtualHere USB Server</h1>
+					<p>Service status: <span class="<?php echo $isVirtualHereServiceRunning ? "running" : "notrunning"; ?>"><?php echo $isVirtualHereServiceRunning ? "Running" : "Not Running"; ?></span></p>
+					<p>License Key: <span class="<?php echo $licenseVirtualHere ? "running blur" : "notrunning"; ?>"><?php echo $licenseVirtualHere ? $licenseVirtualHere : "Unregistered"; ?></span></p>
+					<p>Installed Version: <strong><?php echo $versionVirtualHere; ?></strong></p>
+					<form name="vhupdate" method="post" autocomplete="off">
+						<input type="button" name="updatevirtualhere" value="Check For Updates" onclick="checkVirtualHereServerVersion()" />
 					</form>
 				</div>
 			</div>

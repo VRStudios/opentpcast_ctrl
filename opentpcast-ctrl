@@ -1,5 +1,6 @@
 #! /bin/bash
-SERVICE="opentpcast-camera"
+SERVICE="opentpcast-ctrl"
+CAMSERVICE="opentpcast-camera"
 PID_PATH="/var/run/"
 
 if [ "$(id -u)" != "0" ]; then
@@ -11,48 +12,48 @@ case "$1" in
 	camera)
 		case "$2" in
 			start)
-				sudo service $SERVICE start
+				sudo service $CAMSERVICE start
 			;;
 			stop)
-				sudo service $SERVICE stop
+				sudo service $CAMSERVICE stop
 			;;
 			restart)
-				sudo service $SERVICE restart
+				sudo service $CAMSERVICE restart
 			;;
 			reload)
-				if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
-					sudo service $SERVICE restart
+				if [ -e "$PID_PATH/$CAMSERVICE.pid" ] && ps -p $(cat $PID_PATH/$CAMSERVICE.pid) >/dev/null; then
+					sudo service $CAMSERVICE restart
 				fi
 			;;
 			toggle)
-				if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
-					sudo service $SERVICE stop
+				if [ -e "$PID_PATH/$CAMSERVICE.pid" ] && ps -p $(cat $PID_PATH/$CAMSERVICE.pid) >/dev/null; then
+					sudo service $CAMSERVICE stop
 				else
-					sudo service $SERVICE start
+					sudo service $CAMSERVICE start
 				fi
 			;;
 			status)
-				if [ -e "$PID_PATH/$SERVICE.pid" ] && ps -p $(cat $PID_PATH/$SERVICE.pid) >/dev/null; then
+				if [ -e "$PID_PATH/$CAMSERVICE.pid" ] && ps -p $(cat $PID_PATH/$CAMSERVICE.pid) >/dev/null; then
 					echo "1"
 				else
 					echo "0"
 				fi
 			;;
 			enable)
-				sudo update-rc.d $SERVICE defaults
+				sudo update-rc.d $CAMSERVICE defaults
 			;;
 			disable)
-				sudo update-rc.d -f $SERVICE remove
+				sudo update-rc.d -f $CAMSERVICE remove
 			;;
 			boottoggle)
-				if ls /etc/rc*.d/ | grep $SERVICE >/dev/null; then
-					sudo service $SERVICE stop && sudo update-rc.d -f $SERVICE remove
+				if ls /etc/rc*.d/ | grep $CAMSERVICE >/dev/null; then
+					sudo service $CAMSERVICE stop && sudo update-rc.d -f $CAMSERVICE remove
 				else
-					sudo update-rc.d $SERVICE defaults && sudo service $SERVICE start
+					sudo update-rc.d $CAMSERVICE defaults && sudo service $CAMSERVICE start
 				fi
 			;;
 			bootstatus)
-				if ls /etc/rc*.d/ | grep $SERVICE >/dev/null; then
+				if ls /etc/rc*.d/ | grep $CAMSERVICE >/dev/null; then
 					echo "1"
 				else
 					echo "0"
@@ -60,6 +61,34 @@ case "$1" in
 			;;
 			*)
 				echo "Usage $SERVICE camera {start|stop|restart|reload|toggle|status|enable|disable|boottoggle|bootstatus}" 1>&2
+				exit 1
+			;;
+		esac
+	;;
+	virtualhere)
+		case "$2" in
+			status)
+				if (( $(ps -ef | grep -v grep | grep vhusbdtpcast | wc -l) > 0 )); then
+					echo "1"
+				else
+					echo "0"
+				fi
+			;;
+			version)
+				echo $(sudo /usr/sbin/vhusbdtpcast -h | sed -n "s/vhusbdtpcast v//gp")
+			;;
+			license)
+				if [ -e "/root/config.ini" ]; then
+					echo $(sudo cat /root/config.ini | sed -n "s/^License=//gp")
+				fi
+			;;
+			update)
+				if [ -e "/var/www/html/vhusbdtpcast" ]; then
+					sudo service vhusbdpin stop && sudo mv /var/www/html/vhusbdtpcast /usr/sbin/vhusbdtpcast && sudo chmod +x /usr/sbin/vhusbdtpcast && sudo service vhusbdpin start
+				fi
+			;;
+			*)
+				echo "Usage $SERVICE virtualhere {status|version|license|update}" 1>&2
 				exit 1
 			;;
 		esac
@@ -81,9 +110,10 @@ case "$1" in
 		sudo shutdown now
 	;;
 	*)
-		echo "Usage $SERVICE {camera|applyconfig|initwlan|reboot|shutdown}" 1>&2
+		echo "Usage $SERVICE {camera|virtualhere|applyconfig|initwlan|reboot|shutdown}" 1>&2
 		exit 1
 	;;
 esac
 
 exit 0
+
