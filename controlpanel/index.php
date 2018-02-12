@@ -54,6 +54,34 @@
 				color: white;
 			}
 
+			#notification-bg {
+				margin: 0px;
+				padding: 0px;
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0, 0, 0, 0.2);
+				visibility: hidden;
+			}
+
+			#notification {
+				margin: 0px;
+				position: absolute;
+				top: 45%;
+				width: 100%;
+				height: 100px;
+				background-color: #D92B4B;
+				color: white;
+				text-align: center;
+				line-height: 100px;
+				font-size: 1.6em;
+				font-weight: bold;
+			}
+
+			#notification a {
+				color: white;
+			}
+
 			select {
 				display: block;
 				width: 100%;
@@ -218,7 +246,38 @@
 					var form = document.getElementsByName("vhupdate")[0];
 					form.querySelectorAll("[name=updatevirtualhere]")[0].value = form.querySelectorAll("[name=updatevirtualhere]")[0].value.replace(/\.+$/, "") + progressindicator;
 				}
+
+				var notifypanel = document.getElementById("notification");
+				notifypanel.innerHTML = notifypanel.innerHTML.replace(/\.+$/, "") + progressindicator;
 			}, 750);
+
+			function saveConfReboot() {
+				var mainpanel = document.getElementById("container");
+				mainpanel.style.filter = "blur(5px)";
+
+				var footerpanel = document.getElementById("footer");
+				footerpanel.style.filter = "blur(5px)";
+
+				var notifypanel = document.getElementById("notification");
+				notifypanel.innerHTML = "Saving Changes, Please Wait";
+
+				var notifybgpanel = document.getElementById("notification-bg");
+				notifybgpanel.style.visibility = "visible";
+
+				var form = document.getElementsByName("editconf")[0];
+				var formdata = new FormData(form);
+				formdata.append("saveconfreboot", "Save & Reboot TPCast");
+				var request = new XMLHttpRequest();
+				request.onreadystatechange = function() {
+					if(request.readyState === 4 && (request.status === 0 || request.status === 200)) {
+						var notifypanel = document.getElementById("notification");
+						notifypanel.innerHTML = "Rebooting TPCast, Please Wait";
+						setTimeout(reloadPageWhenAvailable, 5000);
+					}
+				}
+				request.open("POST", "index.php");
+				request.send(formdata);
+			}
 
 			function checkVirtualHereServerVersion() {
 				var form = document.getElementsByName("vhupdate")[0];
@@ -308,6 +367,13 @@
 			function cameraFullscreenPreview() {
 				var el = document.getElementById("camerapreview");
 				if(el && (document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled)) (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen).bind(el)();
+			}
+
+			function reloadPageWhenAvailable() {
+				var pagetest = new Image();
+				pagetest.onload = function() { window.location = window.location.protocol + '//' + window.location.host + window.location.pathname + window.location.search; };
+				pagetest.onerror = reloadPageWhenAvailable;
+				pagetest.src = window.location.href.split('?')[0].split('#')[0] + 'opentpcast-logo.png?nocache=' + Math.floor((1 + Math.random()) * 0x10000).toString(16);
 			}
 		</script>
 	</head>
@@ -435,6 +501,7 @@
 				exec("sudo opentpcast-ctrl virtualhere update");
 			}
 
+			$versionOpenTPCast = exec("sudo opentpcast-ctrl version");
 			$isCameraServiceEnabled = (exec("sudo opentpcast-ctrl camera bootstatus") === "1");
 			$isCameraServiceRunning = (exec("sudo opentpcast-ctrl camera status") === "1");
 
@@ -458,7 +525,7 @@
 						<h2>Network</h2>
 						<label for="ssid">SSID</label><input type="text" oninput="editedConf()" placeholder="Auto-detect" name="ssid"<?php if($confTemplate["network"]["properties"]["ssid"]["value"]) echo " value=\"" . htmlspecialchars($confTemplate["network"]["properties"]["ssid"]["value"]) . "\""; ?>/>
 						<label for="passphrase">Passphrase</label><input type="text" oninput="editedConf()" name="passphrase"<?php if($confTemplate["network"]["properties"]["passphrase"]["value"]) echo " value=\"" . htmlspecialchars($confTemplate["network"]["properties"]["passphrase"]["value"]) . "\""; ?>/>
-						<input type="submit" name="saveconf" value="Save" disabled /><input type="submit" name="saveconfreboot" value="Save & Reboot TPCast" disabled /><input type="button" name="confdefault" value="Load Defaults" onclick="loadConfDefaults()" />
+						<input type="submit" name="saveconf" value="Save" disabled /><input type="button" name="saveconfreboot" value="Save & Reboot TPCast" onclick="saveConfReboot()" disabled /><input type="button" name="confdefault" value="Load Defaults" onclick="loadConfDefaults()" />
 					</form>
 				</div>
 
@@ -493,7 +560,11 @@
 		</div>
 
 		<div id="footer">
-			Powered by <a href="https://github.com/OpenTPCast/">OpenTPCast</a> - <?php echo php_uname(); ?>
+			Powered by <a href="https://github.com/OpenTPCast/">OpenTPCast</a> :: Version <?php echo $versionOpenTPCast; ?> :: Kernel <?php echo php_uname('r'); ?> :: <?php echo php_uname('m'); ?>
+		</div>
+
+		<div id="notification-bg">
+			<div id="notification"></div>
 		</div>
 	</body>
 </html>

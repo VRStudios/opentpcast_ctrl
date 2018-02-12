@@ -93,6 +93,13 @@ case "$1" in
 			;;
 		esac
 	;;
+	version)
+		if [ -e "/boot/opentpcastversion.txt" ]; then
+			sudo cat /boot/opentpcastversion.txt
+		else
+			echo "1.0.0"
+		fi
+	;;
 	applyconfig)
 		if [ -e "/var/www/html/opentpcast.txt" ]; then
 			sudo mv /var/www/html/opentpcast.txt /boot/opentpcast.txt
@@ -110,7 +117,7 @@ case "$1" in
 		sudo shutdown now
 	;;
 	*)
-		echo "Usage $SERVICE {camera|virtualhere|applyconfig|initwlan|reboot|shutdown}" 1>&2
+		echo "Usage $SERVICE {camera|virtualhere|version|applyconfig|initwlan|reboot|shutdown}" 1>&2
 		exit 1
 	;;
 esac
