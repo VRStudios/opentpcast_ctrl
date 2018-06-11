@@ -87,8 +87,12 @@ case "$1" in
 					sudo service vhusbdpin stop && sudo mv /var/www/html/vhusbdtpcast /usr/sbin/vhusbdtpcast && sudo chmod +x /usr/sbin/vhusbdtpcast && sudo service vhusbdpin start
 				fi
 			;;
+			restart)
+				if [ -e "/etc/init.d/vhusbdpin" ]; then
+					sudo /etc/init.d/vhusbdpin restart
+				fi
 			*)
-				echo "Usage $SERVICE virtualhere {status|version|license|update}" 1>&2
+				echo "Usage $SERVICE virtualhere {status|version|license|update|restart}" 1>&2
 				exit 1
 			;;
 		esac

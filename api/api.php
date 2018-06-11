@@ -4,6 +4,13 @@
 	// API to issue commands to TPCast
 	switch($_GET["ctrl"])
 	{
+		case "virtualhere_restart": {
+			$stopVirtualHere = exec("sudo opentpcast-ctrl virtualhere restart");
+			$response = array('response' => 'virtualhererestarted', 'type' => 'virtualhere', 'name' => 'VirtualHere USB Server', 'status' => (exec("sudo opentpcast-ctrl virtualhere status") === "1" ? 'started' : 'stopped'));
+			exit(json_encode($response));
+			break;
+		}
+
 		case "camera_status": {
 			$response = array('response' => 'camerastatus', 'status' => (exec("sudo opentpcast-ctrl camera status") === "1" ? 'started' : 'stopped'));
 			exit(json_encode($response));
